@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ねむログ</title>
+  <style>
+    :root {
+      --bg: #f4f6ff;
+      --card: #ffffff;
+      --ink: #1a2340;
+      --muted: #5a678b;
+      --line: #d8dff5;
+      --accent: #3b5bdb;
+      --accent-2: #5b4ce6;
+      --danger: #b91c1c;
+      --shadow: 0 14px 32px rgba(16, 24, 40, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100svh;
+      font-family: "Avenir Next", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 10%, #d9e6ff 0 14%, transparent 16%),
+        radial-gradient(circle at 88% 8%, #e8ddff 0 12%, transparent 14%),
+        linear-gradient(150deg, #eef3ff, #f5f2ff);
+      padding: 22px 14px 28px;
+    }
+
+    .app {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid #ffffff;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.25rem, 1.05rem + 1.1vw, 1.9rem);
+      letter-spacing: 0.02em;
+    }
+
+    .lead {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fcfdfb;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .row:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input[type="time"], textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      font-size: 1rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); opacity: 0.9; }
+
+    .btn-primary { background: var(--accent); color: #f5f8ff; }
+    .btn-secondary { background: #e9eeff; color: #3048a5; }
+    .btn-danger { background: #fde8e8; color: var(--danger); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .result {
+      background: linear-gradient(135deg, #2647b8, #5b4ce6);
+      color: #f3f5ff;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .result .label {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+
+    .result .total {
+      font-size: clamp(1.5rem, 1.35rem + 1vw, 2.15rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .result .meta {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: #d7ddff;
+    }
+
+    .error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-top: 8px;
+      min-height: 1.3em;
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 4px;
+      font-size: 0.95rem;
+      color: #21312e;
+    }
+
+    @media (max-width: 640px) {
+      .app { padding: 14px; border-radius: 14px; }
+      .panel { padding: 10px; }
+      .row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .row .delete-wrap {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .toolbar .btn {
+        flex: 1;
+        min-width: 42%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>ねむログ</h1>
+    <p class="lead">細切れ睡眠をまとめて計算できます。終了時刻が開始時刻より早い場合は、翌日として自動計算します。</p>
+
+    <section class="result">
+      <div class="label">合計睡眠時間</div>
+      <div class="total" id="total">0時間00分</div>
+      <div class="meta" id="meta">0 セッション / 0分</div>
+    </section>
+
+    <section class="panel">
+      <div id="rows"></div>
+
+      <div class="toolbar">
+        <button class="btn btn-secondary" id="addRowBtn" type="button">+ セッションを追加</button>
+        <button class="btn btn-primary" id="calcBtn" type="button">合計を計算</button>
+      </div>
+      <div class="error" id="error"></div>
+    </section>
+
+    <section class="panel">
+      <label for="bulkInput">一括入力（例: 20:14-23:05, 23:30-1:22, 1:55-6:00）</label>
+      <textarea id="bulkInput" placeholder="20:14-23:05, 23:30-1:22, 1:55-6:00"></textarea>
+      <div class="toolbar">
+        <button class="btn btn-secondary" id="importBtn" type="button">一括入力を反映</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <strong>セッションごとの計算結果</strong>
+      <ol class="list" id="intervalList"></ol>
+    </section>
+  </main>
+
+  <script>
+    const rowsEl = document.getElementById('rows');
+    const totalEl = document.getElementById('total');
+    const metaEl = document.getElementById('meta');
+    const errorEl = document.getElementById('error');
+    const intervalListEl = document.getElementById('intervalList');
+
+    const addRowBtn = document.getElementById('addRowBtn');
+    const calcBtn = document.getElementById('calcBtn');
+    const importBtn = document.getElementById('importBtn');
+
+    function createRow(start = '', end = '') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'row';
+      wrapper.innerHTML = `
+        <div>
+          <label>開始</label>
+          <input type="time" class="start" value="${start}" />
+        </div>
+        <div>
+          <label>終了</label>
+          <input type="time" class="end" value="${end}" />
+        </div>
+        <div class="delete-wrap" style="display:flex;align-items:end;justify-content:flex-end;">
+          <button type="button" class="btn btn-danger delete">削除</button>
+        </div>
+      `;
+      wrapper.querySelector('.delete').addEventListener('click', () => {
+        wrapper.remove();
+        calculate();
+      });
+
+      wrapper.querySelectorAll('input').forEach((input) => {
+        input.addEventListener('change', calculate);
+      });
+
+      rowsEl.appendChild(wrapper);
+    }
+
+    function parseTime(text) {
+      const match = text.trim().match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const hour = Number(match[1]);
+      const minute = Number(match[2]);
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+      return hour * 60 + minute;
+    }
+
+    function formatClock(totalMinutes) {
+      const hour24 = Math.floor(totalMinutes / 60) % 24;
+      const minute = totalMinutes % 60;
+      return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    }
+
+    function formatDuration(mins) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return `${h}時間${String(m).padStart(2, '0')}分`;
+    }
+
+    function calculate() {
+      const rows = [...rowsEl.querySelectorAll('.row')];
+      let total = 0;
+      let validCount = 0;
+      const items = [];
+
+      errorEl.textContent = '';
+
+      rows.forEach((row, idx) => {
+        const startStr = row.querySelector('.start').value;
+        const endStr = row.querySelector('.end').value;
+        if (!startStr && !endStr) return;
+
+        const start = parseTime(startStr);
+        const end = parseTime(endStr);
+
+        if (start === null || end === null) {
+          errorEl.textContent = `${idx + 1}行目の時刻が不正です。`;
+          return;
+        }
+
+        let duration = end - start;
+        if (duration <= 0) duration += 24 * 60;
+
+        total += duration;
+        validCount += 1;
+
+        items.push(`${formatClock(start)} - ${formatClock(end)} : ${formatDuration(duration)}`);
+      });
+
+      totalEl.textContent = formatDuration(total);
+      metaEl.textContent = `${validCount} セッション / ${total}分`;
+
+      intervalListEl.innerHTML = '';
+      items.forEach((text) => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        intervalListEl.appendChild(li);
+      });
+    }
+
+    function importBulk() {
+      const text = document.getElementById('bulkInput').value;
+      const chunks = text
+        .split(/[\n,、]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      if (!chunks.length) {
+        errorEl.textContent = '一括入力が空です。';
+        return;
+      }
+
+      const parsed = [];
+      for (const chunk of chunks) {
+        const m = chunk.match(/^(\d{1,2}:\d{2})\s*[-〜～]\s*(\d{1,2}:\d{2})$/);
+        if (!m) {
+          errorEl.textContent = `形式エラー: ${chunk}`;
+          return;
+        }
+        if (parseTime(m[1]) === null || parseTime(m[2]) === null) {
+          errorEl.textContent = `時刻エラー: ${chunk}`;
+          return;
+        }
+        parsed.push({ start: m[1], end: m[2] });
+      }
+
+      rowsEl.innerHTML = '';
+      parsed.forEach(({ start, end }) => createRow(start, end));
+      calculate();
+    }
+
+    addRowBtn.addEventListener('click', () => createRow());
+    calcBtn.addEventListener('click', calculate);
+    importBtn.addEventListener('click', importBulk);
+
+    createRow();
+    calculate();
+  </script>
+</body>
+</html>
